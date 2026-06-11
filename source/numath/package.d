@@ -11,4 +11,7 @@
 */
 module numath;
 
+// Basic imports.
 public import numath.math;
+public import numath.vector;
+public import numath.matrix;

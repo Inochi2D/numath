@@ -1,5 +1,5 @@
 /**
-    NuMath Linear Algebra
+    NuMath Vectors
 
     Copyright:
         Copyright © 2023-2025, Kitsunebi Games
@@ -10,8 +10,8 @@
         Luna Nielsen
 */
 module numath.vector;
-import numem.core.traits;
-import numem.core.meta;
+import numath.matrix;
+import numath.traits;
 import numath.limits;
 import numath.math;
 
@@ -124,7 +124,7 @@ public:
 	}
 
 	/**
-		The type of the vector storage.
+		The type of the vector's components
 	*/
 	alias VT = T;
 
@@ -132,6 +132,71 @@ public:
 		The dimensionality of the vector.
 	*/
 	enum dimensions = dims;
+
+
+
+    //
+    //          SPECIAL ENUMERATIONS
+    //
+
+    /**
+		A vector where the last value is 1.
+	*/
+    enum identity = { typeof(this) r; r.data[$-1] = 1; return r; }();
+
+    /**
+		Vector filled with ones.
+	*/
+    enum one = { typeof(this) r; r.data = 1; return r; }();
+
+    /**
+		Vector filled with ones.
+	*/
+    enum zero = typeof(this).init;
+
+    /**
+		Unit vector pointing left.
+	*/
+    enum left = { typeof(this) r; r.data[0] = -1; return r; }();
+
+    /**
+		Unit vector pointing right.
+	*/
+    enum right = { typeof(this) r; r.data[0] = 1; return r; }();
+
+    /**
+		Unit vector pointing up.
+	*/
+    enum up = { typeof(this) r; r.data[1] = 1; return r; }();
+
+    /**
+		Unit vector pointing down.
+	*/
+    enum down = { typeof(this) r; r.data[1] = -1; return r; }();
+
+    /**
+		Unit vector pointing up.
+	*/
+	static if (dims >= 3)
+    enum forward = { typeof(this) r; r.data[2] = 1; return r; }();
+
+    /**
+		Unit vector pointing down.
+	*/
+	static if (dims >= 3)
+    enum back = { typeof(this) r; r.data[2] = -1; return r; }();
+
+    /**
+		Unit vector pointing ana.
+	*/
+	static if (dims >= 4)
+    enum ana = { typeof(this) r; r.data[3] = 1; return r; }();
+
+    /**
+		Unit vector pointing kata.
+	*/
+	static if (dims >= 4)
+    enum kata = { typeof(this) r; r.data[3] = -1; return r; }();
 
 
 
@@ -197,7 +262,7 @@ public:
 	*/
 	this(Y)(inout(Y) rhs)
 	if (isVector!Y) {
-		static foreach(i; 0..nu_min(dims, Y.dimensions)) {
+		static foreach(i; 0..min(dims, Y.dimensions)) {
 			this.data[i] = cast(T)rhs.data[i];
 		}
 	}
@@ -210,7 +275,7 @@ public:
 	*/
 	this(Args...)(Args args) 
 	if (Args.length == dims && allSatisfy!(isScalar, Args)) {
-		static foreach(i; 0..nu_min(dims, Args.length)) {
+		static foreach(i; 0..min(dims, Args.length)) {
 			this.data[i] = cast(T)args[i];
 		}
 	}
@@ -221,7 +286,7 @@ public:
 		All components will be set to said value.
 
 		Params:
-			args = The scalar values to assign.
+			value = The scalar value to assign.
 	*/
 	this(Y)(Y value) 
 	if (__traits(isScalar, Y)) {
@@ -236,44 +301,6 @@ public:
 	//
 	//			FUNCTIONS
 	//
-
-	/**
-		Gets the dot product between this and another vector of
-		equal size.
-
-		Params:
-			rhs = The vector to get the dot product against.
-
-		Returns:
-			The dot product of this and the other vector.
-	*/
-	T dot(Y)(inout(Y) rhs) 
-	if (isVector!Y && Y.dimensions == this.dims) {
-		T tmp = 0;
-		static foreach(i; 0..dims)
-			tmp += data[i] * cast(T)rhs.data[i];
-
-		return tmp;
-	}
-
-	/**
-		Gets the cross product between this vector and another
-		3-dimensional vector.
-
-		Params:
-			rhs = The right hand side vector.
-
-		Returns:
-			The cross-product of the 2 vectors.
-	*/
-	auto cross(Y)(inout(Y) rhs)
-	if (isSizeCompatibleVectors!(typeof(this), Y) && dims == 3) {
-		return typeof(this)(
-			(this.data[1]*cast(T)other.data[2]) - (this.data[2]-cast(T)other.data[1]),
-			(this.data[2]*cast(T)other.data[0]) - (this.data[0]-cast(T)other.data[2]),
-			(this.data[0]*cast(T)other.data[1]) - (this.data[1]-cast(T)other.data[0]),
-		);
-	}
 
 	/**
 		Gets the distance between this vector and the other vector.
@@ -343,11 +370,14 @@ public:
 
 		Params:
 			rhs = The right hand operand of the binary operation.
+
+		Returns:
+			The result of the binary operation.
 	*/
 	auto opBinary(string op, Y)(inout(Y) rhs)
 	if (isVector!Y && op != "~") {
 		Unqual!(typeof(this)) result;
-		static foreach(i; 0..nu_min(dims, Y.dimensions)) {
+		static foreach(i; 0..min(dims, Y.dimensions)) {
 			result.data[i] = mixin("this.data[i] ", op, " cast(T)rhs.data[i]");
 		}
 		return result;
@@ -363,13 +393,49 @@ public:
 		return result;
 	}
 
-	/// ditto
-	auto opBinaryRight(string op, Y)(inout(Y) rhs)
+
+
+	//
+	//			OP-BINARY RIGHT
+	//
+
+	/**
+		Implements left-handed binary operations for the vector type.
+
+		Params:
+			lhs = The left hand operand of the binary operation.
+		
+		Returns:
+			The result of the binary operation.
+	*/
+	auto opBinaryRight(string op, Y)(inout(Y) lhs)
 	if (__traits(isScalar, Y) && op != "~") {
 		Unqual!(typeof(this)) result;
 		static foreach(i; 0..dims) {
-			result.data[i] = mixin("cast(T)rhs ", op, " this.data[i]");
+			result.data[i] = mixin("cast(T)lhs ", op, " this.data[i]");
 		}
+		return result;
+	}
+
+
+
+
+	//
+	//			OP-UNARY
+	//
+
+	/**
+		Implements unary operation for this vector type.
+
+		Returns:
+			The result of the unary operation.
+	*/
+	auto opUnary(string op)()
+	if (op != "*") {
+		Unqual!(typeof(this)) result;
+		static foreach(i; 0..dims)
+			result.data[i] = mixin(op, "this.data[i]");
+		
 		return result;
 	}
 
@@ -388,7 +454,7 @@ public:
 	*/
 	void opOpAssign(string op, Y)(inout(Y) rhs)
 	if (isVector!Y && op != "~") {
-		static foreach(i; 0..nu_min(dims, Y.dimensions)) {
+		static foreach(i; 0..min(dims, Y.dimensions)) {
 			mixin("this.data[i] ", op, "= cast(T)rhs.data[i]");
 		}
 	}
@@ -413,7 +479,7 @@ public:
 	*/
 	int opCmp(Y)(ref inout(Y) rhs) const 
 	if (isVector!Y && Y.dims == this.dims) {
-		static foreach(i; 0..nu_min(dims, Y.dims)) {
+		static foreach(i; 0..min(dims, Y.dims)) {
 			if (this.data[i] < rhs.data[i])
 				return -1;
 			else if(this.data[i] > rhs.data[i])
@@ -453,6 +519,46 @@ public:
 		}
 		return result;
 	}
+}
+
+/**
+	Gets the dot product between this and another vector of
+	equal size.
+
+	Params:
+		lhs = The lef hand side vector.
+		rhs = The vector to get the dot product against.
+
+	Returns:
+		The dot product of this and the other vector.
+*/
+T.VT dot(T, Y)(inout(T) lhs, inout(Y) rhs) @nogc nothrow pure
+if (isSizeCompatibleVectors!(T, Y)) {
+	T.VT tmp = 0;
+	static foreach(i; 0..T.dimensions)
+		tmp += lhs.data[i] * cast(T.VT)rhs.data[i];
+
+	return tmp;
+}
+
+/**
+	Gets the cross product between this vector and another
+	3-dimensional vector.
+
+	Params:
+		lhs = The lef hand side vector.
+		rhs = The right hand side vector.
+
+	Returns:
+		The cross-product of the 2 vectors.
+*/
+auto cross(T, Y)(inout(T) lhs, inout(Y) rhs) @nogc nothrow pure
+if (isSizeCompatibleVectors!(T, Y) && T.dimensions == 3) {
+	return T(
+		(lhs.data[1]*cast(T.VT)rhs.data[2]) - (lhs.data[2]-cast(T.VT)rhs.data[1]),
+		(lhs.data[2]*cast(T.VT)rhs.data[0]) - (lhs.data[0]-cast(T.VT)rhs.data[2]),
+		(lhs.data[0]*cast(T.VT)rhs.data[1]) - (lhs.data[1]-cast(T.VT)rhs.data[0]),
+	);
 }
 
 
@@ -556,6 +662,19 @@ private template __arith_test(T, string op) {
 			}
 		}
 	}
+}
+
+@("basic tests")
+unittest {
+	assert(vec3.up == vec3(0, 1, 0));
+	assert(vec4.ana == vec4(0, 0, 0, 1));
+	assert(vec4.one == vec4(1, 1, 1, 1));
+	assert(vec4.zero == vec4(0, 0, 0, 0));
+}
+
+@("unary")
+unittest {
+	assert(-vec2.one == vec2(-1, -1));
 }
 
 @("+")
