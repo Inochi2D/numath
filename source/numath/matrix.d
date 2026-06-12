@@ -32,7 +32,7 @@ enum isSizeCompatibleMatrices(MT1, MT2) =
     A matrix.    
 */
 struct MatrixImpl(T, int r_, int c_) 
-if (__traits(isScalar, T)) {
+if (isScalar!T) {
 @nogc nothrow pure:
 public:
     union {
@@ -137,7 +137,7 @@ public:
         static auto scaling(Args...)(Args args)
         if (allSatisfy!(isScalar, Args)) {
             typeof(this) result = typeof(this).identity;
-            static foreach(i; 0..min(rows-1, Y.dimensions))
+            static foreach(i; 0..min(rows-1, Args.length))
                 result.data[(rows*i)+i] = cast(T)args[i];
 
             return result;
@@ -464,6 +464,21 @@ public:
     if (__traits(isScalar, Y)) {
         static foreach(i; 0..data.length) {
             this.data[i] = cast(T)value;
+        }
+    }
+
+    /**
+        Creates a new matrix from the given scalar value.
+
+        All components will be set to said value.
+
+        Params:
+            value = The scalar value to assign.
+    */
+    this(Y)(Y[c_*r_] value) 
+    if (__traits(isScalar, Y)) {
+        static foreach(i; 0..data.length) {
+            this.data[i] = cast(T)value[i];
         }
     }
 

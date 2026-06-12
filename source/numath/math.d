@@ -13,6 +13,9 @@ module numath.math;
 import numath.traits;
 import nu = nulib.math;
 
+// Fixed point math.
+public import nulib.math.fixed;
+
 /**
     Computes the square root of the given value.
 
@@ -169,6 +172,19 @@ alias acosh = nu.acosh;
 alias atanh = nu.atanh;
 
 /**
+    Raises the given number $(D x) by the power of $(D n).
+
+    Params:
+        x = The number to raise.
+        n = The power to raise it by.
+
+    Returns:
+        The number raised by the given power,
+        value is undefined if $(D x) is non-finite.      
+*/
+alias pow = nu.pow;
+
+/**
     Determines whether the given value is a finite number.
 
     Params:
@@ -260,6 +276,23 @@ T clamp(T)(T value, T min_, T max_) @trusted @nogc nothrow pure {
 }
 
 /**
+    Performs a nearest-neighbour interpolation between 
+    $(D a) and $(D b).
+
+    Params:
+        a = The first value to interpolate
+        b = The second value to interpolate
+        t = The interpolation step from 0..1
+
+    Returns:
+        The interpolated value between $(D a) and $(D b)
+*/
+T nearest(T, FT)(T a, T b, FT t) @trusted @nogc nothrow pure
+if (__traits(isFloating, FT)) {
+    return t < 0.5 ? a : b;
+}
+
+/**
     Linearly interpolates between $(D a) and $(D b)
 
     Params:
@@ -273,6 +306,51 @@ T clamp(T)(T value, T min_, T max_) @trusted @nogc nothrow pure {
 T lerp(T, FT)(T a, T b, FT t) @trusted @nogc nothrow pure
 if (__traits(isFloating, FT)) {
     return a * (1 - t) + b * t;
+}
+
+/**
+    Interpolates between $(D p0) and $(D p3), using a cubic
+    hermite spline with $(D p1) and $(D p2) as control points.
+
+    Params:
+        p0 = The first value to interpolate
+        p1 = The first control value for the curve.
+        p2 = The second control value for the curve.
+        p3 = The second value to interpolate
+        t = The interpolation step from 0..1
+    
+    Returns:
+        The interpolated value between $(D p0) and $(D p3)
+*/
+T hermite(T, FT)(T p0, T p1, T p2, T p3, FT t) @trusted @nogc nothrow pure
+if (__traits(isFloating, FT)) {
+    float h1 = 2 * t^^3 - 3 * t^^2 + 1;
+    float h2 = -2* t^^3 + 3 * t^^2;
+    float h3 = t^^3 - 2 * t^^2 + t;
+    float h4 = t^^3 - t^^2;
+    return h1 * p0 + h3 * p1 + h2 * p2 + h4 * p3;
+}
+
+/**
+    Interpolates between $(D p0) and $(D p3), using a cubic
+    catmull-rom spline with $(D p1) and $(D p2) as control points.
+
+    Params:
+        p0 = The first value to interpolate
+        p1 = The first control value for the curve.
+        p2 = The second control value for the curve.
+        p3 = The second value to interpolate
+        t = The interpolation step from 0..1
+    
+    Returns:
+        The interpolated value between $(D p0) and $(D p3)
+*/
+T catmullrom(T, FT)(T p0, T p1, T p2, T p3, FT t) @trusted @nogc nothrow pure
+if (__traits(isFloating, FT)) {
+    return 0.5f * ((2 * p1) + 
+                   (-p0 + p2) * t +
+                   (2 * p0 - 5 * p1 + 4 * p2 - p3) * t^^2 +
+                   (-p0 + 3 * p1 - 3 * p2 + p3) * t^^3);
 }
 
 /**
@@ -337,11 +415,11 @@ pragma(inline, true)
 T mod(T)(T value, T delta) @trusted @nogc nothrow pure {
     static if (isLinalg!T) {
         static foreach(i; 0..T.data.length) {
-            value.data[i] = cast(T.VT)nu.mod(cast(real)value.data[i]);
+            value.data[i] = cast(T.VT)nu.mod(cast(real)value.data[i], delta);
         }
         return value;
     } else {
-        return nu.mod(value);
+        return nu.mod(value, delta);
     }
 }
 

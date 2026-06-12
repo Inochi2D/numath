@@ -15,3 +15,4 @@ module numath;
 public import numath.math;
 public import numath.vector;
 public import numath.matrix;
+public import numath.rect;

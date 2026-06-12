@@ -12,6 +12,7 @@
 module numath.traits;
 import numath.vector;
 import numath.matrix;
+import nulib.math.fixed;
 
 public import numem.core.traits;
 public import numem.core.meta;
@@ -20,7 +21,17 @@ public import numem.core.meta;
     Gets whether type $(D T) is a scalar (numeric) 
     type.   
 */
-enum isScalar(T) = __traits(isScalar, T);
+enum isScalar(T) = 
+    __traits(isScalar, T) || 
+    isFixed!T;
+
+/**
+    Gets whether type $(D T) is a type that can represent
+    decimal values.    
+*/
+enum isDecimal(T) =
+    __traits(isFloating, T) ||
+    isFixed!T;
 
 /**
     Gets whether type $(D T) is a linear algebra

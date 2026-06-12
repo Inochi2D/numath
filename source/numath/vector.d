@@ -29,14 +29,14 @@ enum isSizeCompatibleVectors(VT1, VT2) = (isVector!VT1 && isVector!VT2) && VT1.d
 	A mathematical vector.
 */
 struct VectorImpl(T, int dims)
-if (__traits(isScalar, T) && dims >= 2 && dims <= NUMATH_VEC_MAX_DIMS) {
+if (isScalar!T && dims >= 2 && dims <= NUMATH_VEC_MAX_DIMS) {
 @nogc nothrow pure:
 public:
 	union {
 		/**
 			Vector data stored linearly.
 		*/
-		T[dims] data = 0;
+		T[dims] data = T(0);
 
 		struct {
 			union {
@@ -147,56 +147,59 @@ public:
     /**
 		Vector filled with ones.
 	*/
-    enum one = { typeof(this) r; r.data = 1; return r; }();
+    enum one = { typeof(this) r; r.data = VT(1); return r; }();
 
     /**
 		Vector filled with ones.
 	*/
     enum zero = typeof(this).init;
 
-    /**
-		Unit vector pointing left.
-	*/
-    enum left = { typeof(this) r; r.data[0] = -1; return r; }();
+    static if (!__traits(isUnsigned, T)) {
 
-    /**
-		Unit vector pointing right.
-	*/
-    enum right = { typeof(this) r; r.data[0] = 1; return r; }();
+	    /**
+			Unit vector pointing left.
+		*/
+	    enum left = { typeof(this) r; r.data[0] = -1; return r; }();
 
-    /**
-		Unit vector pointing up.
-	*/
-    enum up = { typeof(this) r; r.data[1] = 1; return r; }();
+	    /**
+			Unit vector pointing right.
+		*/
+	    enum right = { typeof(this) r; r.data[0] = 1; return r; }();
 
-    /**
-		Unit vector pointing down.
-	*/
-    enum down = { typeof(this) r; r.data[1] = -1; return r; }();
+	    /**
+			Unit vector pointing up.
+		*/
+	    enum up = { typeof(this) r; r.data[1] = 1; return r; }();
 
-    /**
-		Unit vector pointing up.
-	*/
-	static if (dims >= 3)
-    enum forward = { typeof(this) r; r.data[2] = 1; return r; }();
+	    /**
+			Unit vector pointing down.
+		*/
+	    enum down = { typeof(this) r; r.data[1] = -1; return r; }();
 
-    /**
-		Unit vector pointing down.
-	*/
-	static if (dims >= 3)
-    enum back = { typeof(this) r; r.data[2] = -1; return r; }();
+	    /**
+			Unit vector pointing up.
+		*/
+		static if (dims >= 3)
+	    enum forward = { typeof(this) r; r.data[2] = 1; return r; }();
 
-    /**
-		Unit vector pointing ana.
-	*/
-	static if (dims >= 4)
-    enum ana = { typeof(this) r; r.data[3] = 1; return r; }();
+	    /**
+			Unit vector pointing down.
+		*/
+		static if (dims >= 3)
+	    enum back = { typeof(this) r; r.data[2] = -1; return r; }();
 
-    /**
-		Unit vector pointing kata.
-	*/
-	static if (dims >= 4)
-    enum kata = { typeof(this) r; r.data[3] = -1; return r; }();
+	    /**
+			Unit vector pointing ana.
+		*/
+		static if (dims >= 4)
+	    enum ana = { typeof(this) r; r.data[3] = 1; return r; }();
+
+	    /**
+			Unit vector pointing kata.
+		*/
+		static if (dims >= 4)
+	    enum kata = { typeof(this) r; r.data[3] = -1; return r; }();
+	}
 
 
 
@@ -214,7 +217,7 @@ public:
 	*/
 	@property T lengthSquared() const {
 		T tmp = 0;
-		static foreach(i; 0..dims)
+		static foreach(i; 0..dimensions)
 			tmp += data[i]^^2;
 		return tmp;
 	}
@@ -230,7 +233,7 @@ public:
 	@property typeof(this) normalized() const {
 		real len = length;
 		Unqual!(typeof(this)) result;
-		static foreach(i; 0..dims)
+		static foreach(i; 0..dimensions)
 			result.data[i] = cast(T)(data[i] / len);
 		return result;
 	}
@@ -240,7 +243,7 @@ public:
 	*/
 	@property bool isFinite() const {
 		static if (__traits(isFloating, T)) {
-			static foreach(i; 0..dims)
+			static foreach(i; 0..dimensions)
 				if (!data[i].isFinite)
 					return false;
 		}
@@ -275,8 +278,30 @@ public:
 	*/
 	this(Args...)(Args args) 
 	if (Args.length == dims && allSatisfy!(isScalar, Args)) {
-		static foreach(i; 0..min(dims, Args.length)) {
+		static foreach(i; 0..min(dimensions, Args.length)) {
 			this.data[i] = cast(T)args[i];
+		}
+	}
+
+	/**
+		Creates a new vector from the given vector
+		and following scalar values.
+
+		Params:
+			vec = 	The leading vector to assign
+			args = 	The following scalar values to assign.
+	*/
+	this(Y, Args...)(inout(Y) vec, Args args) 
+	if (isVector!Y && allSatisfy!(isScalar, Args)) {
+		enum _offset = (cast(ptrdiff_t)dimensions-cast(ptrdiff_t)Y.dimensions);
+		static foreach(i; 0..min(dimensions, Y.dimensions)) {
+			this.data[i] = cast(T)vec.data[i];
+		}
+
+		static if (_offset > 0) {
+			static foreach(i; 0..min(args.length, dimensions-_offset)) {
+				this.data[_offset+i] = cast(T)args[i];
+			}
 		}
 	}
 
@@ -289,8 +314,8 @@ public:
 			value = The scalar value to assign.
 	*/
 	this(Y)(Y value) 
-	if (__traits(isScalar, Y)) {
-		static foreach(i; 0..dims) {
+	if (isScalar!Y) {
+		static foreach(i; 0..dimensions) {
 			this.data[i] = cast(T)value;
 		}
 	}
@@ -311,7 +336,7 @@ public:
 		Returns:
 			The distance between the 2 vectors.
 	*/
-	T distance(Y)(inout(Y) rhs)
+	T distance(Y)(inout(Y) rhs) inout
 	if (isVector!Y) {
 		return (this - rhs).length;
 	}
@@ -328,7 +353,7 @@ public:
 		See_Also:
 			$(LINK2 https://registry.khronos.org/OpenGL-Refpages/gl4/html/reflect.xhtml, reflect - GLSL Documentation)
 	*/
-	auto reflect(Y)(inout(Y) norm) 
+	auto reflect(Y)(inout(Y) norm) inout
 	if(isSizeCompatibleVectors!(typeof(this), Y)) {
 		return (2 * (this * norm) * norm) - this;
 	}
@@ -350,7 +375,7 @@ public:
 		See_Also:
 			$(LINK2 https://registry.khronos.org/OpenGL-Refpages/gl4/html/refract.xhtml, refract - GLSL Documentation)
 	*/
-	auto refract(Y)(inout(Y) incident, real eta)
+	auto refract(Y)(inout(Y) incident, real eta) inout
 	if(isSizeCompatibleVectors!(typeof(this), Y)) {
 		real k = 1.0 - eta * eta * (1.0 - this.dot(incident) * this.dot(incident));
 		if (k < 0.0)
@@ -374,7 +399,7 @@ public:
 		Returns:
 			The result of the binary operation.
 	*/
-	auto opBinary(string op, Y)(inout(Y) rhs)
+	auto opBinary(string op, Y)(inout(Y) rhs) inout
 	if (isVector!Y && op != "~") {
 		Unqual!(typeof(this)) result;
 		static foreach(i; 0..min(dims, Y.dimensions)) {
@@ -384,10 +409,10 @@ public:
 	}
 
 	/// ditto
-	auto opBinary(string op, Y)(inout(Y) rhs)
-	if (__traits(isScalar, Y) && op != "~") {
+	auto opBinary(string op, Y)(inout(Y) rhs) inout
+	if (isScalar!Y && op != "~") {
 		Unqual!(typeof(this)) result;
-		static foreach(i; 0..dims) {
+		static foreach(i; 0..dimensions) {
 			result.data[i] = mixin("this.data[i] ", op, " cast(T)rhs");
 		}
 		return result;
@@ -408,10 +433,10 @@ public:
 		Returns:
 			The result of the binary operation.
 	*/
-	auto opBinaryRight(string op, Y)(inout(Y) lhs)
-	if (__traits(isScalar, Y) && op != "~") {
+	auto opBinaryRight(string op, Y)(inout(Y) lhs) inout
+	if (isScalar!Y && op != "~") {
 		Unqual!(typeof(this)) result;
-		static foreach(i; 0..dims) {
+		static foreach(i; 0..dimensions) {
 			result.data[i] = mixin("cast(T)lhs ", op, " this.data[i]");
 		}
 		return result;
@@ -433,7 +458,7 @@ public:
 	auto opUnary(string op)()
 	if (op != "*") {
 		Unqual!(typeof(this)) result;
-		static foreach(i; 0..dims)
+		static foreach(i; 0..dimensions)
 			result.data[i] = mixin(op, "this.data[i]");
 		
 		return result;
@@ -455,15 +480,15 @@ public:
 	void opOpAssign(string op, Y)(inout(Y) rhs)
 	if (isVector!Y && op != "~") {
 		static foreach(i; 0..min(dims, Y.dimensions)) {
-			mixin("this.data[i] ", op, "= cast(T)rhs.data[i]");
+			mixin("this.data[i] ", op, "= cast(T)rhs.data[i];");
 		}
 	}
 
 	/// ditto
 	void opOpAssign(string op, Y)(inout(Y) rhs)
-	if (__traits(isScalar, Y) && op != "~") {
-		static foreach(i; 0..dims) {
-			mixin("this.data[i] ", op, "= cast(T)rhs");
+	if (isScalar!Y && op != "~") {
+		static foreach(i; 0..dimensions) {
+			mixin("this.data[i] ", op, "= cast(T)rhs;");
 		}
 	}
 
@@ -478,8 +503,8 @@ public:
 	
 	*/
 	int opCmp(Y)(ref inout(Y) rhs) const 
-	if (isVector!Y && Y.dims == this.dims) {
-		static foreach(i; 0..min(dims, Y.dims)) {
+	if (isVector!Y && Y.dimensions == this.dimensions) {
+		static foreach(i; 0..min(dims, Y.dimensions)) {
 			if (this.data[i] < rhs.data[i])
 				return -1;
 			else if(this.data[i] > rhs.data[i])
@@ -586,48 +611,47 @@ alias vec4 = VectorImpl!(float, 4);
 /**
 	2-dimensional double-precision floating point vector.	
 */
-alias dvec2 = VectorImpl!(double, 2);
+alias vec2d = VectorImpl!(double, 2);
 
 /**
 	3-dimensional double-precision floating point vector.	
 */
-alias dvec3 = VectorImpl!(double, 3);
+alias vec3d = VectorImpl!(double, 3);
 
 /**
 	4-dimensional double-precision floating point vector.	
 */
-alias dvec4 = VectorImpl!(double, 4);
+alias vec4d = VectorImpl!(double, 4);
 
 /**
 	2-dimensional unsigned integer vector.
 */
-alias ivec2 = VectorImpl!(int, 2);
+alias vec2i = VectorImpl!(int, 2);
 
 /**
 	3-dimensional unsigned integer vector.
 */
-alias ivec3 = VectorImpl!(int, 3);
+alias vec3i = VectorImpl!(int, 3);
 
 /**
 	4-dimensional unsigned integer vector.
 */
-alias ivec4 = VectorImpl!(int, 4);
+alias vec4i = VectorImpl!(int, 4);
 
 /**
 	2-dimensional signed integer vector.
 */
-alias uvec2 = VectorImpl!(uint, 2);
+alias vec2u = VectorImpl!(uint, 2);
 
 /**
 	3-dimensional signed integer vector.
 */
-alias uvec3 = VectorImpl!(uint, 3);
+alias vec3u = VectorImpl!(uint, 3);
 
 /**
 	4-dimensional signed integer vector.
 */
-alias uvec4 = VectorImpl!(uint, 4);
-
+alias vec4u = VectorImpl!(uint, 4);
 
 
 
