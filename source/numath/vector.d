@@ -571,7 +571,7 @@ if (isSizeCompatibleVectors!(T, Y)) {
 	3-dimensional vector.
 
 	Params:
-		lhs = The lef hand side vector.
+		lhs = The left hand side vector.
 		rhs = The right hand side vector.
 
 	Returns:
@@ -586,6 +586,27 @@ if (isSizeCompatibleVectors!(T, Y) && T.dimensions == 3) {
 	);
 }
 
+/**
+	Gets whether the 2 vectors describe almost the same point.
+
+	Params:
+		lhs = 		The left hand side vector.
+		rhs = 		The right hand side vector.
+		epsilon =	The maximum error.
+
+	Returns:
+		$(D true) if $(D lhs) is within $(D epsilon) of $(D rhs),
+		$(D false) otherwise.
+*/
+bool isAlmost(T, Y)(inout(T) lhs, inout(Y) rhs, float epsilon = 0.00001) @nogc nothrow pure
+if (isSizeCompatibleVectors!(T, Y)) {
+	float tmp = 0;
+	static foreach(i; 0..T.dimensions)
+		tmp += rhs.data[i] - lhs.data[i];
+
+	tmp /= cast(float)T.dimensions;
+	return abs(tmp) < epsilon;
+}
 
 
 
@@ -731,7 +752,7 @@ unittest {
 
 @("swizzling")
 unittest {
-	vec4 a = ivec4(0, 1, 2, 3);
-	assert(a.wzyx == ivec4(3, 2, 1, 0));
+	vec4 a = vec4i(0, 1, 2, 3);
+	assert(a.wzyx == vec4i(3, 2, 1, 0));
 	assert(a.uvuv == a.rgrg);
 }
