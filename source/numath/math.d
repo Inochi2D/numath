@@ -232,6 +232,26 @@ if (__traits(isFloating, T)) {
 }
 
 /**
+    Returns the smaller of the 2 given scalar values with
+    a given amount of smoothing.
+
+    Params:
+        rhs =   value
+        lhs =   value
+        k =     smoothing factor.
+
+    Returns:
+        The smaller of the 2 given values, smoothed
+        by the factor of $(D k).
+*/
+inout(T) smin(T)(T lhs, T rhs, T k = 1.0) @trusted @nogc nothrow pure
+if (__traits(isFloating, T)) {
+    k *= 6.0;
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h*h*h*k*(1.0/6.0);
+}
+
+/**
     Returns the smaller of the 2 given scalar values.
 
     Params:
@@ -243,6 +263,26 @@ if (__traits(isFloating, T)) {
 */
 T min(T)(T lhs, T rhs) @trusted @nogc nothrow pure {
     return lhs < rhs ? lhs : rhs;
+}
+
+/**
+    Returns the larger of the 2 given scalar values with
+    a given amount of smoothing.
+
+    Params:
+        rhs =   value
+        lhs =   value
+        k =     smoothing factor.
+
+    Returns:
+        The larger of the 2 given values, smoothed
+        by the factor of $(D k).
+*/
+inout(T) smax(T)(T lhs, T rhs, T k = 1.0) @trusted @nogc nothrow pure
+if (__traits(isFloating, T)) {
+    k *= 6.0;
+    float h = max(k - abs(a - b), 0.0) / k;
+    return max(a, b) - h*h*h*k*(1.0/6.0);
 }
 
 /**
