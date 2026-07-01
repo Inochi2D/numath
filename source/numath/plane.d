@@ -131,7 +131,7 @@ public:
         return 
             (cast(PT)other.x == normal.x) & 
             (cast(PT)other.y == normal.y) & 
-            (cast(PT)other.y == normal.y) & 
+            (cast(PT)other.z == normal.z) & 
             (cast(PT)other.d == d);
     }
 }
