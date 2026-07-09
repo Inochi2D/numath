@@ -316,6 +316,24 @@ T clamp(T)(T value, T min_, T max_) @trusted @nogc nothrow pure {
 }
 
 /**
+    Remaps value from one range to another.
+    
+    Params:
+        v =         The value to remap.
+        fromMin =   The minimum value of the source range.
+        fromMax =   The maximum value of the source range.
+        toMin =     The minimum value of the destination range.
+        toMax =     The maximum value of the destination range.
+
+    Returns:
+        The given value, remapped to the given range.
+*/
+T remap(T)(T v, T fromMin, T fromMax, T toMin, T toMax) {
+    T t = (v - fromMin) / (fromMax - fromMin);
+    return toMin + (toMax - toMin) * t;
+}
+
+/**
     Performs a nearest-neighbour interpolation between 
     $(D a) and $(D b).
 
