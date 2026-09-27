@@ -278,6 +278,7 @@ public:
 	*/
 	this(Args...)(Args args) 
 	if (Args.length == dims && allSatisfy!(isScalar, Args)) {
+		this.data[] = 0;
 		static foreach(i; 0..min(dimensions, Args.length)) {
 			this.data[i] = cast(T)args[i];
 		}
