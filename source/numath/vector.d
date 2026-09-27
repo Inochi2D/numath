@@ -578,12 +578,16 @@ if (isSizeCompatibleVectors!(T, Y)) {
 		The cross-product of the 2 vectors.
 */
 auto cross(T, Y)(inout(T) lhs, inout(Y) rhs) @nogc nothrow pure
-if (isSizeCompatibleVectors!(T, Y) && T.dimensions == 3) {
-	return T(
-		(lhs.data[1]*cast(T.VT)rhs.data[2]) - (lhs.data[2]-cast(T.VT)rhs.data[1]),
-		(lhs.data[2]*cast(T.VT)rhs.data[0]) - (lhs.data[0]-cast(T.VT)rhs.data[2]),
-		(lhs.data[0]*cast(T.VT)rhs.data[1]) - (lhs.data[1]-cast(T.VT)rhs.data[0]),
-	);
+if (isSizeCompatibleVectors!(T, Y) && T.dimensions <= 3) {
+	static if (T.dimensions == 3) {
+		return T(
+			(lhs.data[1]*cast(T.VT)rhs.data[2]) - (lhs.data[2]-cast(T.VT)rhs.data[1]),
+			(lhs.data[2]*cast(T.VT)rhs.data[0]) - (lhs.data[0]-cast(T.VT)rhs.data[2]),
+			(lhs.data[0]*cast(T.VT)rhs.data[1]) - (lhs.data[1]-cast(T.VT)rhs.data[0]),
+		);
+	} else {
+		return cross(VectorImpl!(T.VT, 3)(lhs), VectorImpl!(T.VT, 3)(rhs));
+	}
 }
 
 /**
