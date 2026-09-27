@@ -34,12 +34,7 @@ public:
     /**
         The sign (winding order) of the triangle.
     */
-    @property float sign() nothrow pure {
-        alias T3 = VectorImpl!(T.VT, 3);
-        T3 u = T3(p1 - p0, 0);
-        T3 v = T3(p2 - p0, 0);
-        return -cast(float)cross(u, v).z;
-    }
+    @property float sign() nothrow pure => .sign(this);
 
     /**
         Gets the barycentric coordinates of the given point.
@@ -83,13 +78,10 @@ public:
             triangle, $(D false) otherwise.
     */
     bool contains(T pt) nothrow pure {
-        if (pt == p0 || pt == p1 || pt == p2)
-            return true;
-
-        float d1 = typeof(this)(pt, p0, p1).sign;
-        float d2 = typeof(this)(pt, p1, p2).sign;
-        float d3 = typeof(this)(pt, p2, p0).sign;
-        return (
+        float d1 = .sign(typeof(this)(pt, p0, p1));
+        float d2 = .sign(typeof(this)(pt, p1, p2));
+        float d3 = .sign(typeof(this)(pt, p2, p0));
+        return !(
             ((d1 < 0) || (d2 < 0) || (d3 < 0)) &&
             ((d1 > 0) || (d2 > 0) || (d3 > 0))
         );
@@ -98,6 +90,24 @@ public:
 
 alias tri2f = TriangleImpl!(vec2);
 alias tri3f = TriangleImpl!(vec3);
+
+/**
+    Calculates sign (winding order) of the triangle.
+
+    Params:
+        tri = The triangle to get the winding of.
+
+    Returns:
+        The winding sign of the triangle.
+*/
+pragma(inline, true)
+float sign(T)(inout(T) tri) @nogc nothrow pure
+if (is(T == TriangleImpl!U, U...)) {
+    return  (tri.p0.x - tri.p2.x) * 
+            (tri.p1.y - tri.p2.y) - 
+            (tri.p1.x - tri.p2.x) * 
+            (tri.p0.y - tri.p2.y);
+}
 
 @("barycentric")
 unittest {
