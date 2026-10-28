@@ -301,16 +301,16 @@ public:
                 typeof(this) ret;
 
                 MT aspect = width / height;
-                MT angle = radians(0.5 * fov);
+                MT angle = radians(fov);
 
-                MT yScale = 1.0 / tan(angle);
+                MT yScale = 1.0 / tan(angle * 0.5);
                 MT xScale = yScale / aspect;
-                MT zScale = far / (far - near);
+                MT zScale = far / (near - far);
                 
                 ret.matrix[0][0] = xScale;
-                ret.matrix[1][1] = -yScale;
-                ret.matrix[2][2] = -zScale;
-                ret.matrix[2][3] = -near * zScale;
+                ret.matrix[1][1] = yScale;
+                ret.matrix[2][2] = zScale;
+                ret.matrix[2][3] = near * zScale;
                 ret.matrix[3][2] = -1.0;
 
                 return ret;
